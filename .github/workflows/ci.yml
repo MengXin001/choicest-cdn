@@ -1,0 +1,52 @@
+name: Choicest EdgeOne CDN
+
+permissions:
+  contents: write
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 2 * * 5'
+
+jobs:
+  export-cdn-nodes:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          pip install requests geoip2
+
+      - name: Download latest Country-without-asn.mmdb
+        run: |
+          curl -L -o Country-without-asn.mmdb "https://github.com/Loyalsoldier/geoip/releases/latest/download/Country-without-asn.mmdb"
+
+      - name: Run the Python script
+        run: |
+          python choicest_cdn.py
+
+      - name: Configure Git
+        run: |
+          git config user.name "MengXin001"
+          git config user.email "3309939798@qq.com"
+
+      - name: Commit
+        run: |
+          mkdir -p data
+          mv top_cdn_ips.json data/top_cdn_ips.json
+          mv top_cdn_c_segments.json data/top_cdn_c_segments.json
+          mv as_cdn_ips.json data/as_cdn_ips.json
+          git add data/top_cdn_ips.json
+          git add data/top_cdn_c_segments.json
+          git add data/as_cdn_ips.json
+          git commit -m "ci: update top cdn ips"
+          git push origin main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
